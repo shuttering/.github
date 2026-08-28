@@ -1,0 +1,35 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": [
+    "Shared Renovate posture for repositories that consume @shuttering/* from GitHub Packages. Extend it as `github>shuttering/.github`. It carries only what is genuinely estate-generic: reaching the private scope, and moving it as one set. Everything about a repo's own shape — its runtimes, its deploy target, its third-party holds — belongs in that repo's config, after this one.",
+    "TWO FIELDS ARE REQUIRED TO REACH THE SCOPE AND NEITHER SUBSTITUTES FOR THE OTHER. `hostRules` binds the credential; `npmrc` routes the scope. Routing with no credential authenticates nothing; a credential with no routing is offered to the default registry, which answers `no-result` for a scope it has never heard of. A hostRules entry that names a host and omits a token is inert — it neither authenticates nor suppresses anything, because Renovate merges matching rules with Object.assign and a rule parsed without that key has no property to copy.",
+    "THE TOKEN IS A MEND ORGANISATION SECRET, stored at developer.mend.io and named SHUTTERING_NPM_TOKEN. It is a different store from the GitHub Actions secret of the same name that CI reads; setting either does nothing for the other. It must carry read:packages on the shuttering org, which is a different org from most consumers, and which a repo's own installation token cannot grant. If it is not registered for the consuming organisation, Renovate halts every PR in that repo and opens an `Action Required` issue naming the secret.",
+    "DO NOT WRITE A TEMPLATE EXPRESSION INTO ANY PROSE FIELD. Renovate templates every string in the config, this description included, so an example of the secret syntax written in a comment resolves as a real secret reference and halts the repository. That has happened in this estate. Describe the mechanism; never illustrate it.",
+    "separateMajorMinor is false ON PURPOSE and is the load-bearing line here. Every internal dependency in the monorepo is `workspace:*`, which publishes as an exact pin, so a tokens release re-pins motion, ui, charts and error-pages and through them agent, ai and signature. Those packages are only correct as one set. Left at its default of true, Renovate splits them into a minor branch and a major branch, and applying either alone puts two copies of @shuttering/tokens in the tree — the newer package forces the newer tokens while the older direct pin holds. The group must move whole or not at all.",
+    "@shuttering/* is exempt from any release-age floor. Such a floor buys time for someone else to notice a compromised publish, which needs a publisher who is not us. Note that the pnpm-side floor is separate config and is not set here: a consumer wanting the same exemption sets minimumReleaseAgeExclude to the scope glob in pnpm-workspace.yaml, with minimumReleaseAgeStrict true so a violation fails rather than rewriting the policy."
+  ],
+  "extends": [
+    "config:recommended",
+    ":semanticCommits",
+    ":semanticCommitTypeAll(chore)",
+    ":dependencyDashboard"
+  ],
+  "npmrc": "@shuttering:registry=https://npm.pkg.github.com",
+  "hostRules": [
+    {
+      "matchHost": "https://npm.pkg.github.com/",
+      "hostType": "npm",
+      "token": "{{ secrets.SHUTTERING_NPM_TOKEN }}"
+    }
+  ],
+  "packageRules": [
+    {
+      "matchPackageNames": ["/^@shuttering//"],
+      "groupName": "shuttering",
+      "separateMajorMinor": false,
+      "minimumReleaseAge": null,
+      "automerge": true,
+      "automergeType": "branch"
+    }
+  ]
+}
